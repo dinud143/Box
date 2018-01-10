@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Adafruit Industries
+#Version new Copyright (c) 2017 Adafruit Industries
 # Author: Dinu D
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
