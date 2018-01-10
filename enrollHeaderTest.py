@@ -1,5 +1,5 @@
-#V1.1.1 Copyright (c) 2017 Adafruit Industries
-# Author: Dinu D
+# Copyright (c) 2017 Adafruit Industries
+# Author: Tony DiCola & James DeVito
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ from PIL import ImageFont
 from threading import Thread
 import picamera
 import os
-
+import shutil #for python copy files
 
 import subprocess
 
@@ -336,6 +336,28 @@ def Process_Commands(S_data):
 			elif S_data =='$DLTA#':
 				delete_all()
 				S_data=""
+			elif S_data =='$UPDT#':
+				pgm_file='/home/pi/RAW/TestFiles/enrollHeaderTest.py'
+				os.system("sudo rm -rf /home/pi/RAW/TestFiles/Box")
+				os.system("git clone https://github.com/dinud143/Box.git")
+				print"git download complete"
+				os.remove(pgm_file)
+				shutil.copy( firm_dir,"/home/pi/RAW/TestFiles")
+				print "copy and replace complete"
+				
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				print"Executed one more line"
+				S_data=""
 			
 		else:
 			sock.sendall("Wrong Input")
@@ -366,6 +388,7 @@ amount_expected=6
 amount_received=0
 global command_recived
 command_recived=''
+firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
 
 t=Thread(target=commands_to_variable)
 t.start()
