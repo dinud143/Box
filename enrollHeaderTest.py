@@ -129,7 +129,7 @@ def EnrollId(ID):
 			data=f.IsPressFinger()
 			a=data[0]["Parameter"]
 		if a==0: 
-			time.sleep(.1)
+			time.sleep(.01)
 			f.CaptureFinger()
 			finger=f.IsPressFinger()
 			finger_d=finger[0]["Parameter"]
@@ -157,7 +157,7 @@ def EnrollId(ID):
 					data=f.IsPressFinger()
 					a=data[0]["Parameter"]
 				if a==0: 
-					time.sleep(.1)
+					time.sleep(.01)
 					f.CaptureFinger()
 					finger=f.IsPressFinger()
 					finger_d=finger[0]["Parameter"]
@@ -185,7 +185,7 @@ def EnrollId(ID):
 							data=f.IsPressFinger()
 							a=data[0]["Parameter"]
 						if a==0:
-							time.sleep(.1)
+							time.sleep(.01)
 							f.CaptureFinger()
 							finger=f.IsPressFinger()
 							finger_d=finger[0]["Parameter"]
@@ -274,10 +274,17 @@ def Set_temp(id):
 	data=f.CheckEnrolled(id)
 	print data
 	a=data[0]["Parameter"]
-	print "waiting for template"
-	template=sock.recv(498)
-	print template
-	if a==0:
+	
+	if a!=0:
+		print "waiting for template"
+		template=sock.recv(996)
+		print template
+		template=bytearray.fromhex(template)
+		#print "template in hex"
+		#print template
+		template= str(template)
+		#print "template to string"
+		#print template
 		data=f.SetTemplate(id,template)
 		print "set template response below"
 		print data
@@ -329,6 +336,7 @@ def Process_Commands(S_data):
 			elif S_data =='$DLTA#':
 				delete_all()
 				S_data=""
+			
 		else:
 			sock.sendall("Wrong Input")
 			S_data=0
