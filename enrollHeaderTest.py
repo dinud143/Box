@@ -39,9 +39,9 @@ draw = ImageDraw.Draw(image)
 draw.rectangle((0,0,width,height), outline=0, fill=0)
 # Draw some shapes.
 # First define some constants to allow easy resizing of shapes.
-fontB = ImageFont.truetype('PIXEARG_.TTF',22 )
-font = ImageFont.truetype('PIXEAB__.TTF',22 )
-fontS=ImageFont.truetype('runescape_uf.ttf',18 )
+fontB = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEARG_.TTF',22 )
+font = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEAB__.TTF',22 )
+fontS=ImageFont.truetype('/home/pi/RAW/TestFiles/runescape_uf.ttf',18 )
 padding = -1
 top = padding
 bottom = height-padding
