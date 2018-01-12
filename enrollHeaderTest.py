@@ -50,6 +50,11 @@ bottom = height-padding
 camera=picamera.PiCamera()
 camera.resolution = (320, 240)
 S_data = ""
+amount_expected=6
+amount_received=0
+global command_recived
+network_status = False
+#data_to_server=[]
 #camera.start_preview()
 #time.sleep(2)
 #camera.stop_preview()
@@ -74,15 +79,27 @@ def commands_to_variable():
 	#fileW=open("commands.txt","w")
 	#print 'cpmmand to variabl efntn started'
 	global command_recived
+	global network_status
 	while(True):
-		if command_recived=='':
-			socktdata=sock.recv(6)
-			command_recived=socktdata
+		if(network_status==True):
+			if command_recived=='':
+				socktdata=sock.recv(6)
+				command_recived=socktdata
 		
 		#print command_recived;
 		
-		
-		
+
+def reconnect_server():
+	global network_status
+	check_network()
+	if network_status==True:
+		a=1
+		while (a!= None):
+			a=sock.connect(server_address)
+			data_to_server.append("DEVICE ReConnected...")
+			#time.sleep(0.1)
+			
+			
 def check_network():
 	global network_status
 	conn = httplib.HTTPConnection("www.google.com",timeout=5)
@@ -346,11 +363,22 @@ def cam_capture():
 
 	
 def send_information():
+	print "send into fntn started"
 	global data_to_server
-	while(True):
-		if (len(data_to_server)!=0):
-			sock.sendall(data_to_server[0])
-			del data_to_server[0]
+	global network_status
+	try:
+		print "inside try"
+		while(True):
+			if network_status==True:
+				if (len(data_to_server)!=0):
+					sock.sendall(data_to_server[0])
+					del data_to_server[0]
+	except socket.error as e:
+		sock.close()
+		print "server disconnected"
+		data_to_server.append("Server Disconnected")
+		reconnect_server()
+		send_information()
 	
 def update_firmware():
 	global data_to_server
@@ -410,6 +438,7 @@ def show_home_screen():
 	disp.display()
 	
 f = fp.FingerPi()
+data_to_server=[]
 print 'Opening connection...'
 f.Open(extra_info = True, check_baudrate = True)
 print 'Changing baudrate...'
@@ -420,14 +449,13 @@ disp.display()
 time.sleep(.1)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('182.72.165.85', 9010)
-sock.connect(server_address)
+thread_reconnect_server=Thread(target=reconnect_server)#this will be started inside sock.sendall exception
+thread_reconnect_server.start()
 
-amount_expected=6
-amount_received=0
-global command_recived
-global network_status
-data_to_server=[]
-data_to_server.append("Device COnnected...")
+
+
+
+
 command_recived=''
 firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
 
@@ -440,6 +468,9 @@ thread_send_data.start()
 thread_chk_network=Timer(30.0, check_network)
 thread_chk_network.start()
 
+
+
+#data_to_server.append("Device COnnected...")
 #file=open("commands.txt","r+") 
 while(True):
 	#print command_recived
@@ -450,9 +481,15 @@ while(True):
 		command_recived=""
 		
 	
+	print network_status
 	
 	show_home_screen()
 	check_io_pins()
+	# try: 
+		# print data_to_server[0]
+	# except:
+		# print "no data"
+	# #print data_to_server[1]
 	
 
 
