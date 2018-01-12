@@ -254,8 +254,10 @@ def delete_all():
 	a=data[0]["ACK"]
 	if a==True:
 		print "Deleted all"
+		data_to_server.append("DLTAOK")
 	else:
 		print "DB is empty"
+		data_to_server.append("Error: DB already Empty")
 							
 def Get_temp(id):
 	global data_to_server
@@ -264,14 +266,15 @@ def Get_temp(id):
 	a=data[0]["Parameter"]
 	if a==0:
 		template=f.GetTemplate(id)
-		temp_data=template[1]['Data']	
-		return temp_data
+		temp_data=template[1]['Data']
+		data_to_server.append(temp_data)
+		#return temp_data
 	else:
 		print id
 		print ":Not Used/Not valid "
 		text="Not Used/Invalid ID:"
 		text+=str(id)
-		return text
+		data_to_server.append(text)
 def Set_temp(id):
 	global data_to_server
 	print id
@@ -281,6 +284,7 @@ def Set_temp(id):
 	
 	if a!=0:
 		print "waiting for template"
+		data_to_server.append("Waiting For template...")
 		template=sock.recv(996)
 		print template
 		template=bytearray.fromhex(template)
@@ -290,6 +294,7 @@ def Set_temp(id):
 		#print "template to string"
 		#print template
 		data=f.SetTemplate(id,template)
+		data_to_server.append(data)
 		print "set template response below"
 		print data
 	else:
@@ -297,9 +302,25 @@ def Set_temp(id):
 		print ":Used/Not valid "
 		text="Used/Invalid ID:"
 		text+=str(id)
-		return text	
+		data_to_server.append(text)
 	
 		
+def cam_capture():
+	#print "cam command received"
+	camera.capture('test.jpg',quality=10)
+	os.system('pkill picamera')
+	f = open('test.jpg', 'rh')
+	print 'Sending...'
+	l = f.read(1024)
+	data_to_server.append(l)
+	while (l):
+		data_to_server.append(l)
+		l = f.read(1024)
+		print "sending" 
+		#time.sleep(0.01)
+		print "Done Sending"
+
+
 	
 def send_information():
 	global data_to_server
@@ -308,6 +329,18 @@ def send_information():
 			sock.sendall(data_to_server[0])
 			del data_to_server[0]
 	
+def update_firmware()
+	global data_to_server
+	data_to_server.append("Updating Firmware...")
+	pgm_file='/home/pi/RAW/TestFiles/enrollHeaderTest.py'
+	os.system("sudo rm -rf /home/pi/RAW/TestFiles/Box")
+	os.system("git clone https://github.com/dinud143/Box.git")
+	data_to_server.append("Download Compleated...")
+	print"git download complete"
+	os.remove(pgm_file)
+	shutil.copy( firm_dir,"/home/pi/RAW/TestFiles")
+	print "copy and replace complete"
+	data_to_server.append("Firmware replaced.")
 	
 	
 def Process_Commands(S_data):
@@ -321,23 +354,11 @@ def Process_Commands(S_data):
 				EnrollId(int(num))
 				S_data=""
 			elif S_data[1:5]=='JPEG':
-				print "cam command received"
-				camera.capture('test.jpg',quality=10)
-				os.system('pkill picamera')
-				f = open('test.jpg', 'rh')
-				print 'Sending...'
-				l = f.read(1024)
-				while (l):
-					sock.send(l)
-					l = f.read(1024)
-					print "sending" 
-					time.sleep(0.01)
-				print "Done Sending"
-				#time.sleep(30)
+				cam_capture()
 				S_data=""	
 			elif S_data[1]=='G':
 				num=S_data[2:5]
-				sock.sendall(Get_temp(int(num)))
+				Get_temp(int(num))
 				S_data=""
 			elif S_data[1]=='S':
 				num=S_data[2:5]
@@ -347,13 +368,7 @@ def Process_Commands(S_data):
 				delete_all()
 				S_data=""
 			elif S_data =='$UPDT#':
-				pgm_file='/home/pi/RAW/TestFiles/enrollHeaderTest.py'
-				os.system("sudo rm -rf /home/pi/RAW/TestFiles/Box")
-				os.system("git clone https://github.com/dinud143/Box.git")
-				print"git download complete"
-				os.remove(pgm_file)
-				shutil.copy( firm_dir,"/home/pi/RAW/TestFiles")
-				print "copy and replace complete"
+				update_firmware()
 				
 				print"Executed one more line"
 				print"Executed one more line"
