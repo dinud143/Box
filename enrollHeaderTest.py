@@ -64,8 +64,8 @@ x = 0
 #font = ImageFont.truetype('runescape_uf.ttf',22 )
 
 GPIO.setmode(GPIO.BCM)
-A_pin=17
-GPIO.setup(A_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
+panic_pin=17
+GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
 ###########################################################################
 
 def commands_to_variable():
@@ -86,8 +86,15 @@ def printByteArray(arr):
     return map(hex, list(arr))
 
 
-	
+def check_io_pins():
+	global data_to_server
+	if GPIO.input(panic_pin)==False:
+		data_to_server.append("Panic")
+
+		
 def EnrollId(ID):
+	global data_to_server
+	data_to_server.append("$ACKE#")
 	draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 	draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 	disp.image(image)
@@ -98,20 +105,22 @@ def EnrollId(ID):
 	a=data[0]["Parameter"]
 	print a
 	if a==0:
-		sock.sendall("EOK")
+		data_to_server.append("EOK")
 		a=1
-		f.CmosLed(1)
+		
 		draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 		draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 		draw.text((0, 35),"Place Finger ",  font=fontS, fill=255)
 		disp.image(image)
 		disp.display() 
+		f.CmosLed(1)
 		while a:	
 			data=f.IsPressFinger()
 			a=data[0]["Parameter"]
 		if a==0: 
-			time.sleep(.01)
+			time.sleep(.005)
 			f.CaptureFinger()
+			data=f.Enroll1()
 			finger=f.IsPressFinger()
 			finger_d=finger[0]["Parameter"]
 			while(finger_d == 0):
@@ -122,12 +131,12 @@ def EnrollId(ID):
 				draw.text((0, 30),"Remove Finger",  font=fontS, fill=255)
 				disp.image(image)
 				disp.display()
-			f.CmosLed(0)
-			data=f.Enroll1()
+			#f.CmosLed(0)
+			
 			a=data[0]["Parameter"]
 			if a==0:
 				a=1
-				f.CmosLed(1)
+				#f.CmosLed(1)
 				draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 				draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 				draw.text((0, 30),"Place Same ",  font=fontS, fill=255)
@@ -140,6 +149,7 @@ def EnrollId(ID):
 				if a==0: 
 					time.sleep(.01)
 					f.CaptureFinger()
+					data=f.Enroll2()
 					finger=f.IsPressFinger()
 					finger_d=finger[0]["Parameter"]
 					while(finger_d == 0):
@@ -150,12 +160,12 @@ def EnrollId(ID):
 						draw.text((0, 30),"Remove Finger",  font=fontS, fill=255)
 						disp.image(image)
 						disp.display()
-					f.CmosLed(0)
-					data=f.Enroll2()
+					#f.CmosLed(0)
+					
 					a=data[0]["Parameter"]
 					if a==0:
 						a=1
-						f.CmosLed(1)
+						#f.CmosLed(1)
 						draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 						draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 						draw.text((0, 30),"Place Same ",  font=fontS, fill=255)
@@ -168,6 +178,7 @@ def EnrollId(ID):
 						if a==0:
 							time.sleep(.01)
 							f.CaptureFinger()
+							data=f.Enroll3()
 							finger=f.IsPressFinger()
 							finger_d=finger[0]["Parameter"]
 							while(finger_d == 0):
@@ -178,12 +189,13 @@ def EnrollId(ID):
 								draw.text((0, 30),"Remove Finger",  font=fontS, fill=255)
 								disp.image(image)
 								disp.display()
-							f.CmosLed(0)
-							data=f.Enroll3()
+							
 							a=data[0]["Parameter"]
 							b=data[0]["ACK"]
+							f.CmosLed(0)
 							if (b == False and a<200):
-								sock.sendall("DID:%s" % a)
+								#sock.sendall("DID:%s" % a)
+								data_to_server.append("DID:%s" % a)
 								print "Duplicate ID of:"
 								print a
 								draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
@@ -193,7 +205,8 @@ def EnrollId(ID):
 								disp.image(image)
 								disp.display()
 							elif a==0:
-								sock.sendall("E%sOK" % ID)
+								data_to_server.append("E%sOK" % ID)
+								#sock.sendall()
 								print "Enroll Success"
 								draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 								draw.text((0, 0),"Enrolling ",  font=font, fill=255)
@@ -202,33 +215,41 @@ def EnrollId(ID):
 								disp.display()
 							else:
 								print "Capture 3rd finger failed"
+								data_to_server.append("Capture 3rd image failed")
 								draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 								draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 								draw.text((0, 35),"Enroll Failed ",  font=fontS, fill=255)
 								disp.image(image)
 								disp.display()
+								f.CmosLed(0)
 			
 					else:
 						print "Capture second finger failed"
+						data_to_server.append("Capture 2nd image failed")
 						draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 						draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 						draw.text((0, 35),"Enroll Failed ",  font=fontS, fill=255)
 						disp.image(image)
 						disp.display()
+						f.CmosLed(0)
 			
 			else:
 				print "Capture 1st finger failed"
+				data_to_server.append("Capture 1st image failed")
 				draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 				draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 				draw.text((0, 35),"Enroll Failed ",  font=fontS, fill=255)
 				disp.image(image)
 				disp.display()
+				f.CmosLed(0)
 	
 	else:
 		print "Id not valid or used"
+		data_to_server.append("Used/Invalid ID:%s"%ID)
 							
 
 def delete_all():
+	global data_to_server
 	data=f.DeleteAll()
 	a=data[0]["ACK"]
 	if a==True:
@@ -237,6 +258,7 @@ def delete_all():
 		print "DB is empty"
 							
 def Get_temp(id):
+	global data_to_server
 	data=f.CheckEnrolled(id)
 	print data
 	a=data[0]["Parameter"]
@@ -251,6 +273,7 @@ def Get_temp(id):
 		text+=str(id)
 		return text
 def Set_temp(id):
+	global data_to_server
 	print id
 	data=f.CheckEnrolled(id)
 	print data
@@ -278,11 +301,17 @@ def Set_temp(id):
 	
 		
 	
-	
+def send_information():
+	global data_to_server
+	while(True):
+		if (len(data_to_server)!=0):
+			sock.sendall(data_to_server[0])
+			del data_to_server[0]
 	
 	
 	
 def Process_Commands(S_data):
+	global data_to_server
 	#S_data = sock.recv(6)
 	if S_data != "":
 		print S_data
@@ -364,15 +393,19 @@ time.sleep(.1)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('182.72.165.85', 9010)
 sock.connect(server_address)
-sock.sendall("Device Connected....... ")
+
 amount_expected=6
 amount_received=0
 global command_recived
+data_to_server=[]
+data_to_server.append("Device COnnected...")
 command_recived=''
 firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
 
-t=Thread(target=commands_to_variable)
-t.start()
+thread_process_recived_data=Thread(target=commands_to_variable)
+thread_process_recived_data.start()
+thread_send_data=Thread(target=send_information)
+thread_send_data.start()
 #file=open("commands.txt","r+") 
 while(True):
 	#print command_recived
@@ -383,77 +416,9 @@ while(True):
 		command_recived=""
 		
 	
-	#print "printed above"
-	#Process_Commands()
+	
 	show_home_screen()
-	#print 'loop\n'
-	#print 'loop exit'
-	#EnrollId(int(data))
-        
-		
-							
-	
-
-	
-	
-# if a==1:
-	# print 'Enroll1 fail'
-# else:
-	# a=1
-	# while a:
-		# f.CmosLed(1) 
-		# data=f.IsPressFinger()
-		# a=data[0]["Parameter"]
-	# f.CaptureFinger()
-	# f.CmosLed(0)
-	# data=f.Enroll2()
-	# a=data[0]["Parameter"]
-	# if a==1:
-		# print 'Enroll2 fail'
-	# else:
-		# a=1
-		# while a:
-			# f.CmosLed(1) 
-			# data=f.IsPressFinger()
-			# a=data[0]["Parameter"]
-		# f.CaptureFinger()
-		# f.CmosLed(0)
-		# data=f.Enroll2()
-		# a=data[0]["Parameter"]
-		# if a==1:
-			# print 'Enroll3 fail'
-		# else:
-			# a=1
-			# while a:
-				# f.CmosLed(1) 
-				# data=f.IsPressFinger()
-				# a=data[0]["Parameter"]
-			# f.CaptureFinger()
-			# f.CmosLed(0)
-			# data=f.Enroll3()
-			# a=data[0]["Parameter"]
-		
-
+	check_io_pins()
 	
 
 
-
-
-
-# while True:
-
-    # time.sleep(.01)
-
-    # # Write two lines of text.
-
-    # draw.text((x, 20),       "Testing ",  font=font, fill=255)
-    # # Display image.
-    # disp.image(image)
-    # disp.display() 
-    # if GPIO.input(A_pin): # button is released
-    	# f.CmosLed(False)
-    # else: # button is pressed:
-        # f.CmosLed(True)
-	# time.sleep(.05)
-	# f.CmosLed(False)
-	# f.Identify()
