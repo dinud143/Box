@@ -10,9 +10,11 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from threading import Thread
+from threading import Timer
 import picamera
 import os
 import shutil #for python copy files
+import httplib #FOR PING GOOGLE TO CHECK INTERNET CONNECTIVITY.
 
 import subprocess
 
@@ -81,7 +83,19 @@ def commands_to_variable():
 		
 		
 		
-	
+def check_network():
+	global network_status
+	conn = httplib.HTTPConnection("www.google.com",timeout=5)
+	try:
+		conn.request("HEAD", "/")
+		conn.close()
+		network_status=True
+	except:
+		conn.close()
+		network_status=False
+
+		
+		
 def printByteArray(arr):
     return map(hex, list(arr))
 
@@ -294,7 +308,16 @@ def Set_temp(id):
 		#print "template to string"
 		#print template
 		data=f.SetTemplate(id,template)
-		data_to_server.append(data)
+		a=data[1]["Parameter"]
+		b=data[1]["ACK"]
+		if (b==True and a==0):
+			data_to_server.append("Upload Ok ID:"+str(id))
+		elif (b==False and (0<=a<=199)):
+			data_to_server.append("DID of:"+str(a))
+		else:
+			data_to_server.append("Template Error")
+		#data_to_server.append(data)
+		
 		print "set template response below"
 		print data
 	else:
@@ -329,7 +352,7 @@ def send_information():
 			sock.sendall(data_to_server[0])
 			del data_to_server[0]
 	
-def update_firmware()
+def update_firmware():
 	global data_to_server
 	data_to_server.append("Updating Firmware...")
 	pgm_file='/home/pi/RAW/TestFiles/enrollHeaderTest.py'
@@ -369,23 +392,13 @@ def Process_Commands(S_data):
 				S_data=""
 			elif S_data =='$UPDT#':
 				update_firmware()
-				
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
-				print"Executed one more line"
 				S_data=""
+			else:
+				data_to_server.append("Wrong Input")
+				S_data=0
 			
 		else:
-			sock.sendall("Wrong Input")
+			data_to_server.append("Wrong Input")
 			S_data=0
 		
 	
@@ -412,15 +425,21 @@ sock.connect(server_address)
 amount_expected=6
 amount_received=0
 global command_recived
+global network_status
 data_to_server=[]
 data_to_server.append("Device COnnected...")
 command_recived=''
 firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
 
-thread_process_recived_data=Thread(target=commands_to_variable)
+thread_process_recived_data=Thread(target=commands_to_variable)#thread for process rx data
 thread_process_recived_data.start()
-thread_send_data=Thread(target=send_information)
+
+thread_send_data=Thread(target=send_information)#thread for  tx data
 thread_send_data.start()
+
+thread_chk_network=Timer(30.0, check_network)
+thread_chk_network.start()
+
 #file=open("commands.txt","r+") 
 while(True):
 	#print command_recived
