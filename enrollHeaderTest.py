@@ -53,7 +53,8 @@ S_data = ""
 amount_expected=6
 amount_received=0
 global command_recived
-network_status = False
+network_status = True
+global sock
 #data_to_server=[]
 #camera.start_preview()
 #time.sleep(2)
@@ -90,26 +91,45 @@ def commands_to_variable():
 		
 
 def reconnect_server():
-	global network_status
-	check_network()
+	print "Reconnected server fntn started"
+	#global network_status
+	global sock
+	#check_network()
 	if network_status==True:
 		a=1
 		while (a!= None):
-			a=sock.connect(server_address)
-			data_to_server.append("DEVICE ReConnected...")
+			print("Inside reconnect while loop")
+			try:
+				sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				a=sock.connect(server_address)
+				print("Success connecting to server ")
+            
+			except socket.error as e:
+				print(e)
+				time.sleep(1)
+				reconnect_server()
+			
+			# a=sock.connect(server_address)
+			# data_to_server.append("DEVICE ReConnected...")
 			#time.sleep(0.1)
 			
 			
 def check_network():
-	global network_status
-	conn = httplib.HTTPConnection("www.google.com",timeout=5)
-	try:
-		conn.request("HEAD", "/")
-		conn.close()
-		network_status=True
-	except:
-		conn.close()
-		network_status=False
+	while(True):
+		print "NW status fntn enterd"
+		global network_status
+		conn = httplib.HTTPConnection("www.google.com",timeout=1)
+		try:
+			conn.request("HEAD", "/")
+			conn.close()
+			network_status=True
+			print("nw available")
+		except:
+			conn.close()
+			network_status=False
+			print ("NW not available")
+		finally:
+			time.sleep(1)
 
 		
 		
@@ -447,17 +467,25 @@ draw.text((x, 0),"Testing ",  font=font, fill=255)
 disp.image(image)
 disp.display() 
 time.sleep(.1)
+command_recived=''
+firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
+
+
+thread_chk_network=Thread(target=check_network)
+thread_chk_network.start()
+
+
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('182.72.165.85', 9010)
-thread_reconnect_server=Thread(target=reconnect_server)#this will be started inside sock.sendall exception
+thread_reconnect_server=Thread(target=reconnect_server)
 thread_reconnect_server.start()
 
 
 
 
 
-command_recived=''
-firm_dir = ("/home/pi/RAW/TestFiles/Box/enrollHeaderTest.py")
+
 
 thread_process_recived_data=Thread(target=commands_to_variable)#thread for process rx data
 thread_process_recived_data.start()
@@ -465,8 +493,7 @@ thread_process_recived_data.start()
 thread_send_data=Thread(target=send_information)#thread for  tx data
 thread_send_data.start()
 
-thread_chk_network=Timer(30.0, check_network)
-thread_chk_network.start()
+
 
 
 
