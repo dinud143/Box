@@ -1,4 +1,5 @@
 #!/usr/bin/python
+#V1.0
 import time
 import RPi.GPIO as GPIO
 import fingerpi as fp
