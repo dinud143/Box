@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#V1.0
 import time
 import RPi.GPIO as GPIO
 import fingerpi as fp
@@ -65,18 +64,28 @@ socket_status=1
 # Move left to right keeping track of the current x position for drawing shapes.
 x = 0
 
-# Load default font.
-#font = ImageFont.load_default()
-
-# Alternatively load a TTF font.  Make sure the .ttf font file is in the same directory as the python script!
-# Some other nice fonts to try: http://www.dafont.com/bitmap.php
-# font = ImageFont.truetype('VCR_OSD_MONO_1.001.ttf',18)
-#font = ImageFont.truetype('runescape_uf.ttf',22 )
-
+###########################################################################################################
+###########################################################################################################
 GPIO.setmode(GPIO.BCM)
 panic_pin=17
+bio_pin=18
 GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
-###########################################################################
+GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
+
+def check_io_pins(channel):
+	global panic_pin
+	global data_to_server
+	#print channel
+	print "Check io fntn called"
+	if GPIO.input(panic_pin)==False:
+		data_to_server.append("Panic")
+	elif GPIO.input(bio_pin)==False:
+		data_to_server.append("Bio")
+	
+GPIO.add_event_detect(panic_pin, GPIO.FALLING, callback=check_io_pins, bouncetime=3000)
+GPIO.add_event_detect(bio_pin, GPIO.FALLING, callback=check_io_pins,bouncetime=3000)
+#############################################################################################################
+##############################################################################################################
 
 def commands_to_variable():
 	#fileW=open("commands.txt","w")
@@ -145,10 +154,6 @@ def printByteArray(arr):
     return map(hex, list(arr))
 
 
-def check_io_pins():
-	global data_to_server
-	if GPIO.input(panic_pin)==False:
-		data_to_server.append("Panic")
 
 		
 def EnrollId(ID):
@@ -518,7 +523,7 @@ while(True):
 	print network_status
 	
 	show_home_screen()
-	check_io_pins()
+	#check_io_pins()
 	# try: 
 		# print data_to_server[0]
 	# except:
