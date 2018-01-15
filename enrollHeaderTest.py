@@ -309,7 +309,18 @@ def EnrollId(ID):
 	else:
 		print "Id not valid or used"
 		data_to_server.append("Used/Invalid ID:%s"%ID)
-							
+def DeleteId(id):
+	global data_to_server
+	data=f.DeleteId(id)
+	a=data[0]["Parameter"]
+	if a==0:
+		data_to_server.append("Delete OK ID:"+str(id))
+		print "Deleted ID Success"
+	else:
+		data_to_server.append("Not Used/Invalid ID:"+str(id))
+		print "ID not used"
+	
+								
 
 def delete_all():
 	global data_to_server
@@ -450,6 +461,11 @@ def Process_Commands(S_data):
 			elif S_data =='$DLTA#':
 				delete_all()
 				S_data=""
+			elif S_data[1]=='D':
+				num=S_data[2:5]
+				DeleteId(int(num))
+				S_data=""
+			
 			elif S_data =='$UPDT#':
 				update_firmware()
 				S_data=""
