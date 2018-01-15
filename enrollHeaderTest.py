@@ -42,7 +42,7 @@ draw.rectangle((0,0,width,height), outline=0, fill=0)
 # Draw some shapes.
 # First define some constants to allow easy resizing of shapes.
 fontB = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEARG_.TTF',22 )
-font = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEAB__.TTF',22 )
+font = ImageFont.truetype('/home/pi/RAW/TestFiles/m12.TTF',18 )
 fontS=ImageFont.truetype('/home/pi/RAW/TestFiles/runescape_uf.ttf',18 )
 padding = -1
 top = padding
@@ -91,7 +91,7 @@ def commands_to_variable():
 					command_recived=socktdata
 	except:
 		while(socket_status!=None):
-			time.sleep(1)
+			time.sleep(0.1)
 		commands_to_variable()
 		#print command_recived;
 		
@@ -136,7 +136,7 @@ def check_network():
 			network_status=False
 			print ("NW not available")
 		finally:
-			time.sleep(1)
+			time.sleep(30)
 
 		
 		
@@ -165,7 +165,6 @@ def EnrollId(ID):
 	if a==0:
 		data_to_server.append("EOK")
 		a=1
-		
 		draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 		draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 		draw.text((0, 35),"Place Finger ",  font=fontS, fill=255)
