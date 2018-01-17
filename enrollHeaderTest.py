@@ -44,6 +44,7 @@ draw.rectangle((0,0,width,height), outline=0, fill=0)
 fontB = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEARG_.TTF',22 )
 font = ImageFont.truetype('/home/pi/RAW/TestFiles/m12.TTF',18 )
 fontS=ImageFont.truetype('/home/pi/RAW/TestFiles/runescape_uf.ttf',18 )
+
 padding = -1
 top = padding
 bottom = height-padding
@@ -56,6 +57,8 @@ global command_recived
 network_status = True
 global sock
 socket_status=1
+server_address = ('192.168.2.215',1234)
+#server_address = ('182.72.165.85', 9010)
 #data_to_server=[]
 #camera.start_preview()
 #time.sleep(2)
@@ -81,6 +84,7 @@ def check_io_pins(channel):
 		data_to_server.append("Panic")
 	elif GPIO.input(bio_pin)==False:
 		data_to_server.append("Bio")
+		identify_finger()
 	
 GPIO.add_event_detect(panic_pin, GPIO.FALLING, callback=check_io_pins, bouncetime=3000)
 GPIO.add_event_detect(bio_pin, GPIO.FALLING, callback=check_io_pins,bouncetime=3000)
@@ -321,7 +325,29 @@ def DeleteId(id):
 		print "ID not used"
 	
 								
-
+def identify_finger():
+	global data_to_server
+	print"identify fntn called"
+	now=time.time()
+	f.CmosLed(1)
+	a=1
+	while (a!=0 and ((time.time()-now)<10)): 
+		data=f.IsPressFinger()
+		a=data[0]["Parameter"]
+	if a==0:
+		time.sleep(.01)
+		f.CaptureFinger()
+		data= f.Identify()
+		if data[0]["ACK"]==True and  0<= data[0]["Parameter"] <= 199:
+			data_to_server.append("ID:"+str(data[0]["Parameter"]))
+			print "id verified"
+		elif data[0]["ACK"]==False:
+			data_to_server.append("Unknown Finger")
+	else:
+		data_to_server.append("No finger on sensor")
+		
+	
+	f.CmosLed(0)
 def delete_all():
 	global data_to_server
 	data=f.DeleteAll()
@@ -505,7 +531,7 @@ thread_chk_network.start()
 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('182.72.165.85', 9010)
+#server_address = ('182.72.165.85', 9010)
 thread_reconnect_server=Thread(target=reconnect_server)
 thread_reconnect_server.start()
 
