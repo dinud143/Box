@@ -15,6 +15,7 @@ import picamera
 import os
 import shutil #for python copy files
 import httplib #FOR PING GOOGLE TO CHECK INTERNET CONNECTIVITY.
+import smbus#for i2c device like arduino
 
 import subprocess
 
@@ -57,8 +58,12 @@ global command_recived
 network_status = True
 global sock
 socket_status=1
-server_address = ('192.168.2.215',1234)
+server_address = ('192.168.2.215', 12345)
 #server_address = ('182.72.165.85', 9010)
+#server_address = ('192.168.2.215',1234)
+bus = smbus.SMBus(1) #arduino device 
+controller_address = 0x11
+
 #data_to_server=[]
 #camera.start_preview()
 #time.sleep(2)
@@ -103,10 +108,13 @@ def commands_to_variable():
 				if command_recived=='':
 					socktdata=sock.recv(6)
 					command_recived=socktdata
+					time.sleep(0.2)
 	except:
 		while(socket_status!=None):
 			time.sleep(0.1)
 		commands_to_variable()
+		time.sleep(0.2)
+		
 		#print command_recived;
 		
 
@@ -124,11 +132,13 @@ def reconnect_server():
 				sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				socket_status=sock.connect(server_address)
 				print("Success connecting to server ")
+				time.sleep(0.2)
             
 			except socket.error as e:
 				print(e)
 				time.sleep(1)
 				reconnect_server()
+			
 			
 			# a=sock.connect(server_address)
 			# data_to_server.append("DEVICE ReConnected...")
@@ -150,14 +160,27 @@ def check_network():
 			network_status=False
 			print ("NW not available")
 		finally:
-			time.sleep(30)
+			time.sleep(120)
 
 		
 		
 def printByteArray(arr):
     return map(hex, list(arr))
 
-
+def readI2cBus():#read i2c values from controlelr
+	#number = bus.read_byte_data(address)
+	a=0
+	string = ''
+	try:
+		rep =bus.read_i2c_block_data(controller_address,0)
+	except:
+		a=1
+	if a==0:
+		for i in range(0,25):
+			if rep[i]!=255:
+				string += chr(rep[i])
+	print string
+	return string
 
 		
 def EnrollId(ID):
@@ -413,7 +436,25 @@ def Set_temp(id):
 		text+=str(id)
 		data_to_server.append(text)
 	
-		
+def audio_capture():
+	print "recording audio"
+	os.system('arecord -d 5 --device=hw:1,0 --format S16_LE --rate 44100 -c1 audio.wav')
+	os.system('lame audio.wav recorded_audio.mp3')
+	f = open('recorded_audio.mp3', 'rh')
+	print "sending audio"
+	l = f.read(1024)
+	data_to_server.append(l)
+	while (l):
+		data_to_server.append(l)
+		l = f.read(1024)
+		print "sending" 
+		time.sleep(0.02)
+		#time.sleep(0.01)
+	print "Done Sending"
+	time.sleep(0.1)
+	
+
+	
 def cam_capture():
 	#print "cam command received"
 	camera.capture('test.jpg',quality=10)
@@ -426,8 +467,10 @@ def cam_capture():
 		data_to_server.append(l)
 		l = f.read(1024)
 		print "sending" 
+		time.sleep(0.02)
 		#time.sleep(0.01)
-		print "Done Sending"
+	print "Done Sending"
+	time.sleep(0.1)
 
 
 	
@@ -442,6 +485,7 @@ def send_information():
 				if (len(data_to_server)!=0):
 					sock.sendall(data_to_server[0])
 					del data_to_server[0]
+			time.sleep(0.02)
 	except socket.error as e:
 		sock.close()
 		print "server disconnected"
@@ -476,6 +520,9 @@ def Process_Commands(S_data):
 			elif S_data[1:5]=='JPEG':
 				cam_capture()
 				S_data=""	
+			elif S_data[1:5]=='AUDI':
+				thread_send_audio.start()
+				S_data=""
 			elif S_data[1]=='G':
 				num=S_data[2:5]
 				Get_temp(int(num))
@@ -548,6 +595,9 @@ thread_send_data=Thread(target=send_information)#thread for  tx data
 thread_send_data.start()
 
 
+thread_send_audio=Thread(target= audio_capture)#thread for  audio data
+#thread_send_audio.start()
+
 
 
 
@@ -560,11 +610,14 @@ while(True):
 		#print command_recived
 		Process_Commands(command_recived)
 		command_recived=""
+	
 		
 	
 	print network_status
 	
 	show_home_screen()
+	adc=readI2cBus()
+	time.sleep(0.2)
 	#check_io_pins()
 	# try: 
 		# print data_to_server[0]
