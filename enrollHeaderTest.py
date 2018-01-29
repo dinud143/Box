@@ -61,6 +61,7 @@ socket_status=1
 server_address = ('192.168.2.215', 12345)
 #server_address = ('182.72.165.85', 9010)
 #server_address = ('192.168.2.215',1234)
+#server_address = ('182.72.165.85',1234)
 bus = smbus.SMBus(1) #arduino device 
 controller_address = 0x11
 
@@ -80,16 +81,31 @@ bio_pin=18
 GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
 GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
 
-def check_io_pins(channel):
+def check_io_pins(channel):#This function will be qutomatically called if the panic or bio buttons are pressed
 	global panic_pin
 	global data_to_server
 	#print channel
 	print "Check io fntn called"
-	if GPIO.input(panic_pin)==False:
+	if GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==True:
 		data_to_server.append("Panic")
-	elif GPIO.input(bio_pin)==False:
+	elif GPIO.input(bio_pin)==False and GPIO.input(panic_pin)==True:
 		data_to_server.append("Bio")
 		identify_finger()
+	elif GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==False:
+		print "shutwown sequence started"
+		for i in range(8):
+			if GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==False:
+				time.sleep(1)
+				if i==7:
+					draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+					draw.text((0, 30),"Force Shutdown...",  font=fontS, fill=255)
+					disp.image(image)
+					disp.display()
+					data_to_server.append("Force Shutdown")
+					time.sleep(1)
+					os.system('sudo init 0')		
+			else:
+				break
 	
 GPIO.add_event_detect(panic_pin, GPIO.FALLING, callback=check_io_pins, bouncetime=3000)
 GPIO.add_event_detect(bio_pin, GPIO.FALLING, callback=check_io_pins,bouncetime=3000)
