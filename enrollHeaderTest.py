@@ -81,7 +81,7 @@ power_status=27
 panic_pin=17
 bio_pin=18
 GPIO.setup(power_status, GPIO.OUT) # Output with pull-up
-GPIO.output(power_status,1) # setting pin high. This will go low when rpi shutdowns
+GPIO.output(power_status,0) # setting pin high. This will go low when rpi shutdowns
 GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-d
 GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-down
 
@@ -112,7 +112,7 @@ def check_io_pins(channel):#This function will be qutomatically called if the pa
 					disp.image(image)
 					disp.display()
 					data_to_server.append("Force Shutdown")
-					GPIO.output(power_status,0)# turn pin on to denote shutdown
+					GPIO.output(power_status,1)# turn pin on to denote shutdown
 					time.sleep(1)
 					os.system('sudo init 0')		
 			else:
