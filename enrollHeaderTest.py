@@ -44,6 +44,7 @@ draw.rectangle((0,0,width,height), outline=0, fill=0)
 # First define some constants to allow easy resizing of shapes.
 fontB = ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEARG_.TTF',22 )
 font = ImageFont.truetype('/home/pi/RAW/TestFiles/m12.TTF',18 )
+fontM=ImageFont.truetype('/home/pi/RAW/TestFiles/PIXEARG_.TTF',18 )
 fontS=ImageFont.truetype('/home/pi/RAW/TestFiles/runescape_uf.ttf',18 )
 
 padding = -1
@@ -76,25 +77,34 @@ x = 0
 ###########################################################################################################
 ###########################################################################################################
 GPIO.setmode(GPIO.BCM)
+power_status=27
 panic_pin=17
 bio_pin=18
-GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
-GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Input with pull-up
+GPIO.setup(power_status, GPIO.OUT) # Output with pull-up
+GPIO.output(power_status,1) # setting pin high. This will go low when rpi shutdowns
+GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-d
+GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-down
 
 def check_io_pins(channel):#This function will be qutomatically called if the panic or bio buttons are pressed
 	global panic_pin
 	global data_to_server
 	#print channel
 	print "Check io fntn called"
-	if GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==True:
+	if GPIO.input(panic_pin)==True and GPIO.input(bio_pin)==False:
 		data_to_server.append("Panic")
-	elif GPIO.input(bio_pin)==False and GPIO.input(panic_pin)==True:
+		draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+		draw.text((0, 0),"Panic",  font=fontM, fill=255)
+		draw.text((0, 30),"Sent...",  font=fontM, fill=255)
+		disp.image(image)
+		disp.display()
+		time.sleep(1)
+	elif GPIO.input(bio_pin)==True and GPIO.input(panic_pin)==False:
 		data_to_server.append("Bio")
 		identify_finger()
-	elif GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==False:
+	elif GPIO.input(panic_pin)==True and GPIO.input(bio_pin)==True:
 		print "shutwown sequence started"
 		for i in range(8):
-			if GPIO.input(panic_pin)==False and GPIO.input(bio_pin)==False:
+			if GPIO.input(panic_pin)==True and GPIO.input(bio_pin)==True:
 				time.sleep(1)
 				if i==7:
 					draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
@@ -102,13 +112,15 @@ def check_io_pins(channel):#This function will be qutomatically called if the pa
 					disp.image(image)
 					disp.display()
 					data_to_server.append("Force Shutdown")
+					GPIO.output(power_status,0)# turn pin on to denote shutdown
 					time.sleep(1)
 					os.system('sudo init 0')		
 			else:
 				break
+	show_home_screen()
 	
-GPIO.add_event_detect(panic_pin, GPIO.FALLING, callback=check_io_pins, bouncetime=3000)
-GPIO.add_event_detect(bio_pin, GPIO.FALLING, callback=check_io_pins,bouncetime=3000)
+GPIO.add_event_detect(panic_pin, GPIO.RISING, callback=check_io_pins, bouncetime=3000)
+GPIO.add_event_detect(bio_pin, GPIO.RISING, callback=check_io_pins,bouncetime=3000)
 #############################################################################################################
 ##############################################################################################################
 
@@ -367,6 +379,11 @@ def DeleteId(id):
 def identify_finger():
 	global data_to_server
 	print"identify fntn called"
+	draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+	draw.text((0, 0),"Scanning",  font=fontM, fill=255)
+	draw.text((0, 35),"Place Finger...",  font=fontS, fill=255)
+	disp.image(image)
+	disp.display()
 	now=time.time()
 	f.CmosLed(1)
 	a=1
@@ -380,10 +397,23 @@ def identify_finger():
 		if data[0]["ACK"]==True and  0<= data[0]["Parameter"] <= 199:
 			data_to_server.append("ID:"+str(data[0]["Parameter"]))
 			print "id verified"
+			draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+			draw.text((0, 0),"Verified",  font=fontM, fill=255)
+			draw.text((0, 35),"ID:"+str(data[0]["Parameter"]),font=fontS, fill=255)
+			disp.image(image)
+			disp.display()
+			time.sleep(1)
 		elif data[0]["ACK"]==False:
 			data_to_server.append("Unknown Finger")
+			draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+			draw.text((0, 0),"Failed",  font=fontM, fill=255)
+			draw.text((0, 35),"Try Again",font=fontS, fill=255)
+			disp.image(image)
+			disp.display()
+			time.sleep(1)
 	else:
 		data_to_server.append("No finger on sensor")
+	show_home_screen()
 		
 	
 	f.CmosLed(0)
@@ -631,7 +661,7 @@ while(True):
 	
 	print network_status
 	
-	show_home_screen()
+	#show_home_screen()
 	adc=readI2cBus()
 	time.sleep(0.2)
 	#check_io_pins()
