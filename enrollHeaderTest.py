@@ -9,6 +9,7 @@ import socket
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+#import threading
 from threading import Thread
 from threading import Timer
 import picamera
@@ -16,9 +17,13 @@ import os
 import shutil #for python copy files
 import httplib #FOR PING GOOGLE TO CHECK INTERNET CONNECTIVITY.
 import smbus#for i2c device like arduino
-
 import subprocess
+import datetime
 
+from uuid import getnode as get_mac
+mac = get_mac()
+
+		
 # Raspberry Pi pin configuration:
 RST = None     # on the PiOLED this pin isnt used
 
@@ -85,13 +90,17 @@ GPIO.output(power_status,0) # setting pin high. This will go low when rpi shutdo
 GPIO.setup(panic_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-d
 GPIO.setup(bio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Input with pull-down
 
+def get_timestamp():
+	return str(datetime.datetime.now())
+
 def check_io_pins(channel):#This function will be qutomatically called if the panic or bio buttons are pressed
 	global panic_pin
 	global data_to_server
+	data_to_server=[]
 	#print channel
 	print "Check io fntn called"
 	if GPIO.input(panic_pin)==True and GPIO.input(bio_pin)==False:
-		data_to_server.append("Panic")
+		data_to_server.append([mac,get_timestamp(),"Panic"])
 		draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 		draw.text((0, 0),"Panic",  font=fontM, fill=255)
 		draw.text((0, 30),"Sent...",  font=fontM, fill=255)
@@ -99,7 +108,7 @@ def check_io_pins(channel):#This function will be qutomatically called if the pa
 		disp.display()
 		time.sleep(1)
 	elif GPIO.input(bio_pin)==True and GPIO.input(panic_pin)==False:
-		data_to_server.append("Bio")
+		data_to_server.append([mac,get_timestamp(),"Bio"])
 		identify_finger()
 	elif GPIO.input(panic_pin)==True and GPIO.input(bio_pin)==True:
 		print "shutwown sequence started"
@@ -111,13 +120,13 @@ def check_io_pins(channel):#This function will be qutomatically called if the pa
 					draw.text((0, 30),"Force Shutdown...",  font=fontS, fill=255)
 					disp.image(image)
 					disp.display()
-					data_to_server.append("Force Shutdown")
+					data_to_server.append([mac,get_timestamp(),"Force Shutdown"])
 					GPIO.output(power_status,1)# turn pin on to denote shutdown
 					time.sleep(1)
 					os.system('sudo init 0')		
 			else:
 				break
-	show_home_screen()
+	#show_home_screen()
 	
 GPIO.add_event_detect(panic_pin, GPIO.RISING, callback=check_io_pins, bouncetime=3000)
 GPIO.add_event_detect(bio_pin, GPIO.RISING, callback=check_io_pins,bouncetime=3000)
@@ -213,7 +222,7 @@ def readI2cBus():#read i2c values from controlelr
 		
 def EnrollId(ID):
 	global data_to_server
-	data_to_server.append("$ACKE#")
+	data_to_server.append([mac,get_timestamp(),"$ACKE#"])
 	draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 	draw.text((0, 0),"Enrolling ",  font=font, fill=255)
 	disp.image(image)
@@ -224,7 +233,7 @@ def EnrollId(ID):
 	a=data[0]["Parameter"]
 	print a
 	if a==0:
-		data_to_server.append("EOK")
+		data_to_server.append([mac,get_timestamp(),"EOK"])
 		a=1
 		draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 		draw.text((0, 0),"Enrolling ",  font=font, fill=255)
@@ -313,7 +322,7 @@ def EnrollId(ID):
 							f.CmosLed(0)
 							if (b == False and a<200):
 								#sock.sendall("DID:%s" % a)
-								data_to_server.append("DID:%s" % a)
+								data_to_server.append([mac,get_timestamp(),"DID:%s" % a])
 								print "Duplicate ID of:"
 								print a
 								draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
@@ -323,7 +332,7 @@ def EnrollId(ID):
 								disp.image(image)
 								disp.display()
 							elif a==0:
-								data_to_server.append("E%sOK" % ID)
+								data_to_server.append([mac,get_timestamp(),"E%sOK" % ID])
 								#sock.sendall()
 								print "Enroll Success"
 								draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
@@ -404,7 +413,7 @@ def identify_finger():
 			disp.display()
 			time.sleep(1)
 		elif data[0]["ACK"]==False:
-			data_to_server.append("Unknown Finger")
+			data_to_server.append([mac,get_timestamp(),"Unknown Finger"])
 			draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
 			draw.text((0, 0),"Failed",  font=fontM, fill=255)
 			draw.text((0, 35),"Try Again",font=fontS, fill=255)
@@ -413,7 +422,7 @@ def identify_finger():
 			time.sleep(1)
 	else:
 		data_to_server.append("No finger on sensor")
-	show_home_screen()
+	#show_home_screen()
 		
 	
 	f.CmosLed(0)
@@ -512,7 +521,7 @@ def cam_capture():
 	while (l):
 		data_to_server.append(l)
 		l = f.read(1024)
-		print "sending" 
+		print "sending"
 		time.sleep(0.02)
 		#time.sleep(0.01)
 	print "Done Sending"
@@ -524,19 +533,31 @@ def send_information():
 	print "send into fntn started"
 	global data_to_server
 	global network_status
+	global temp
+	temp=[]
 	try:
 		print "inside try"
 		while(True):
 			if network_status==True:
 				if (len(data_to_server)!=0):
-					sock.sendall(data_to_server[0])
+					
+					print "before"+str(data_to_server[0])
+					sock.sendall(str(data_to_server[0]))
+					temp=data_to_server[0]
+					time.sleep(0.01)
+					print "after"+str(data_to_server[0])
 					del data_to_server[0]
 			time.sleep(0.02)
-	except socket.error as e:
+	except Exception as e:
+		print "Exception-------"+str(e)
 		sock.close()
 		print "server disconnected"
-		data_to_server.append("Server Disconnected")
+		data_to_server.append(temp)
+		data_to_server.append([mac,get_timestamp(),"Server Disconnected"])
+		
 		reconnect_server()
+		print "Temp -------------------"+str(temp)
+		#sock.sendall(temp)
 		send_information()
 	
 def update_firmware():
@@ -594,8 +615,7 @@ def Process_Commands(S_data):
 			
 		else:
 			data_to_server.append("Wrong Input")
-			S_data=0
-		
+			S_data=0		
 	
 def show_home_screen():
 	draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
@@ -606,6 +626,17 @@ def show_home_screen():
 	
 f = fp.FingerPi()
 data_to_server=[]
+
+def heart_beat():
+	global data_to_server
+	try:
+		data_to_server.append([mac,get_timestamp(),"Heartbeat"])
+		Timer(300, heart_beat).start()
+	except Exception as e:
+		reconnect_server()
+		heart_beat()
+heart_beat()
+
 print 'Opening connection...'
 f.Open(extra_info = True, check_baudrate = True)
 print 'Changing baudrate...'
@@ -655,15 +686,19 @@ while(True):
 		print  "executed before process cmd"
 		#print command_recived
 		Process_Commands(command_recived)
+		show_home_screen()
 		command_recived=""
 	
 		
-	
+	print "NW ststus:"
 	print network_status
+	print "socket ststus:"
+	print socket_status
+
 	
 	#show_home_screen()
 	adc=readI2cBus()
-	time.sleep(0.2)
+	time.sleep(1)
 	#check_io_pins()
 	# try: 
 		# print data_to_server[0]
