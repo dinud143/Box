@@ -559,9 +559,17 @@ def send_information():
 		print "Temp -------------------"+str(temp)
 		#sock.sendall(temp)
 		send_information()
-	
+
+def console_display(x1,y1,line1,font1,x2,y2,line2,font2):
+	draw.rectangle((0,0,width,height), outline=0, fill=0)#clear display
+	draw.text((x1,y1),line1,font1,fill=255)
+	draw.text((x2,y2),line2,font2,fill=255)
+	disp.image(image)
+	disp.display()
+
 def update_firmware():
 	global data_to_server
+	console_display(0,0,"Updating",font,10,30,"Firmware",font)
 	data_to_server.append("Updating Firmware...")
 	pgm_file='/home/pi/RAW/TestFiles/enrollHeaderTest.py'
 	os.system("sudo rm -rf /home/pi/RAW/TestFiles/Box")
@@ -572,7 +580,9 @@ def update_firmware():
 	shutil.copy( firm_dir,"/home/pi/RAW/TestFiles")
 	print "copy and replace complete"
 	data_to_server.append("Firmware replaced.")
-	
+	console_display(0,0,"",font,10,30,"Rebooting",font)
+	os.system("sudo reboot")
+
 	
 def Process_Commands(S_data):
 	global data_to_server
