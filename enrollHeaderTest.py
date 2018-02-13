@@ -715,6 +715,3 @@ while(True):
 	# except:
 		# print "no data"
 	# #print data_to_server[1]
-	
-
-
